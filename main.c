@@ -13,15 +13,18 @@
 
 
 // Buttons
-#define	SW1 PB5
-#define SW2	PB4
-#define SW3	PB3
-#define SW4	PB2
+#define	SW1 PB2
+#define SW2	PB3
+#define SW3	PB4
+#define SW4	PB5
+
+#define IsPressed(x) ((PINB) & _BV(x))
 
 #define RELAY PB0
 
-#define RelayOn() (PORTB |= (1 << RELAY))
-#define RelayOff() (PORTB |= (0 << RELAY))
+#define RelayOn() (PINB |= (1 << RELAY))
+#define RelayOff() (PINB &= ~(1 << RELAY))
+
 
 
 void display(int);
@@ -45,28 +48,27 @@ unsigned char SYMBOLS[]={
 };
 // Video memory
 unsigned char data[4] = {0,0,0,0};
+
 volatile unsigned char count=0;
-volatile const int POS[] = {
-		PC0
-		,PC1
-		,PC2
-		,PC3
-};
 
 int clkcounter=0;
 volatile int i = 1234;
 
 // Update display
 ISR(TIMER0_OVF_vect){
+#ifdef DEBUG
 	static char totalOVF=0;
-//	if(totalOVF>=0){
+	if(totalOVF>=0){
+#endif
 	PORTC = ~_BV(count);
 
 	PORTD = data[count];
 	count = (count+1)%4;
+#ifdef DEBUG
 	totalOVF=0;
-//	}
+	}
 	totalOVF++;
+#endif
 
 }
 
@@ -74,7 +76,15 @@ ISR(TIMER0_OVF_vect){
 
 // Check the Buttons
 ISR(TIMER2_OVF_vect){
-	PORTB ^= (1 << PB4);
+
+	if(IsPressed(SW1)){
+		PORTC |= _BV(PC4);
+	}
+	else {
+		PORTC &= ~_BV(PC4);
+	}
+
+	//PORTC ^= _BV(PC4);
 }
 
 
@@ -94,18 +104,24 @@ void setup_io(){
 	PORTC |= (1 << PC2);
 	PORTC |= (1 << PC3);
 
-	DDRB |= 1 << PB5;
-	DDRB |= 1 << PB4;
-	DDRB |= 0 << RELAY;
+	DDRC |= 1 << PC5;
+	DDRC |= 1 << PC4;
+	PORTC |= (0 << PC5) | (0 << PC4);
 
-	PORTB |= (1 << PB5) | (1 << PB4);
+	DDRB |= (1 << RELAY);
+	PORTB &= ~(1 << RELAY);
 	RelayOn();
 
+	DDRB |= 0 << SW1;
+	DDRB |= 0 << SW2;
+	DDRB |= 0 << SW3;
+	DDRB |= 0 << SW4;
+
 	// Buttons pullup
-	PORTC &= ~(1 << PC4); // SW1
-	PORTC &= ~(1 << PC5); // SW2
-	PORTB &= ~(1 << PB2); // SW3
-	PORTB &= ~(1 << PB3); // SW4
+	PORTB &= ~(1 << SW1); // SW1
+	PORTB &= ~(1 << SW2); // SW2
+	PORTB &= ~(1 << SW3); // SW3
+	PORTB &= ~(1 << SW4); // SW4
 
 	// Anodes (segments) pins to output
 	DDRD |= 1 << PD0; // A
@@ -131,13 +147,13 @@ void setup_io(){
 	// /8 prescaler
 	TCCR0 |=  (0 << CS02) | (1 << CS01) | (0 << CS00);
 	// start timer0
-	TIMSK |= (1 << TOIE0);
+	//TIMSK |= (1 << TOIE0);
 
 	// Timer1 - time counter (every 1sec)
 
 
-	TCCR1B |= (0 << CS02) | (1 << CS01) | (1 << CS00);
-	TCNT1 = 0x02;
+//	TCCR1B |= (0 << CS02) | (1 << CS01) | (1 << CS00);
+//	TCNT1 = 0x02;
 
 	// Timer2 - button events
 	// every 1ms
@@ -147,7 +163,7 @@ void setup_io(){
 	TCNT2 = 47;
 	TIMSK |= (1 << TOIE2);
 }
-
+/*
 void _display_digit(int pos, int dig){
 
 
@@ -169,6 +185,7 @@ void display(int integer){
 		_display_digit(3, data[3]);
 
 }
+*/
 
 int main(void){
 //	cli();
@@ -188,7 +205,7 @@ int main(void){
 //		display(0);
 //		PORTC |= ((1<<PC0) | (1<<PC1) | (1<<PC2) | (1<<PC3));
 //		PORTC &= ~(1 << POS[0]);
-		_delay_ms(10);
+//		_delay_ms(10);
 		//i++;
 		//PORTB ^= _BV(PB5);
 	}
