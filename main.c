@@ -226,7 +226,7 @@ int main(void){
 
 			}
 			break;
-		case SETUP:
+		case 	SETUP:
 			break;
 		default:
 			break;
